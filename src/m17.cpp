@@ -47,7 +47,7 @@ void beginM17()
 	udp.begin(lport);
 }
 
-//อ่านแพ็คเก็จโปรโตคอลรีแฟล็กเตอร์ mref
+//Read the reflector protocol package mref
 void readyReadM17()
 {
 	uint8_t buf[100];

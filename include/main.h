@@ -5,12 +5,12 @@
 
 //#define DEBUG
 
-//#define I2S_INTERNAL
+#define I2S_INTERNAL
 
-//#define SDCARD
-#define OLED
+#define SDCARD
+//#define OLED
 //#define SA818
-//#define SR_FRS
+#define SR_FRS
 
 #ifdef SR_FRS
 #ifndef SA818
@@ -31,7 +31,7 @@
 
 #define IMPLEMENTATION FIFO
 
-#define TZ 0	 // (utc+) TZ in hours
+#define TZ 8	 // (utc+) TZ in hours
 #define DST_MN 0 // use 60mn for summer time in some countries
 #define TZ_MN ((TZ)*60)
 #define TZ_SEC ((TZ)*3600)
@@ -45,8 +45,8 @@
 #define PCM_BUFF 4000
 
 #include <Arduino.h>
-// #include <FS.h>
-// #include <SD.h>
+//#include <FS.h>
+#include <SD.h>
 // #include <SPIFFS.h>
 #include <cppQueue.h>
 #include <codec2.h>

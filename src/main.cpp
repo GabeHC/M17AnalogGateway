@@ -40,35 +40,41 @@
 #include <DTMF.h>
 //#include "spiffs.h"
 #include "I2S.h"
+#include "SparkFun_WM8960_Arduino_Library.h"
+
+WM8960 codec; // Create an instance of the WM8960 class
 
 LMSClass LMS;
 
 #define EEPROM_SIZE 1024
 
 #ifdef SDCARD
-#define SDCARD_CS 13
+#define SDCARD_CS 15
 #define SDCARD_CLK 14
-#define SDCARD_MOSI 15
-#define SDCARD_MISO 2
+#define SDCARD_MOSI 13
+#define SDCARD_MISO 12
 #endif
 
-#define SPEAKER_PIN 26
-#define MIC_PIN 36
-#define PTT_PIN 32
-#define RSSI_PIN 33
-#define LED_TX 4
-#define LED_RX 2
+#define SDA_PIN 18
+#define SCL_PIN 23
+
+#define SPEAKER_PIN 17
+#define MIC_PIN 5
+#define PTT_PIN 21
+#define RSSI_PIN 36
+#define LED_TX 19
+#define LED_RX 22
 
 #define V_REF 1100
 #define ADC1_CHANNEL (ADC1_CHANNEL_0) // GPIO 36 = MIC_PIN
 #define V_REF_TO_GPIO				  // Remove comment on define to route v_ref to GPIO
 
-#ifdef SA818
-#define VBAT_PIN 35
-#define WIRE 4
-#define POWER_PIN 12
-#define PULLDOWN_PIN 27
-#define SQL_PIN 33
+#ifdef SA818 
+//#define VBAT_PIN 39
+//#define WIRE 4
+#define POWER_PIN 4
+#define PULLDOWN_PIN 2
+//#define SQL_PIN 2 
 HardwareSerial SerialRF(1);
 #endif
 
@@ -260,8 +266,8 @@ void defaultConfig()
 	config.aprs_passcode[0] = 0;
 	sprintf(config.aprs_filter, "b/HS*/E2*");
 	sprintf(config.id, "M17AG");
-	sprintf(config.wifi_ssid, "APRSTH");
-	sprintf(config.wifi_pass, "aprsthnetwork");
+	sprintf(config.wifi_ssid, "Airborne-Mesh");
+	sprintf(config.wifi_pass, "22433897");
 	sprintf(config.wifi_ap_ssid, "M17AGate");
 	config.wifi_ap_pass[0] = 0;
 	config.wifi_power = 44;
@@ -278,15 +284,15 @@ void defaultConfig()
 	config.wifi = true;
 	config.wifi_mode = WIFI_STA_FIX;
 	config.wifi_ch = 1;
-	config.gps_lat = 13.78310;
-	config.gps_lon = 100.40920;
-	config.gps_alt = 5;
+	config.gps_lat = 24.78310;
+	config.gps_lon = 120.40920;
+	config.gps_alt = 75;
 	config.volume = 20;
 	config.mic = 13;
 	config.vox_delay = 0;
 	config.vox_level = 30;
 	config.sql = true;
-	config.sql_active = 0;
+	config.sql_active = 1;
 	config.agc = false;
 	config.noise = true;
 	config.codec2_mode = CODEC2_MODE_3200;
@@ -995,7 +1001,7 @@ void SA818_INIT(bool boot)
 		SerialRF.begin(9600, SERIAL_8N1, 14, 13);
 		pinMode(POWER_PIN, OUTPUT);
 		pinMode(PULLDOWN_PIN, OUTPUT);
-		pinMode(SQL_PIN, INPUT_PULLUP);
+	//	pinMode(SQL_PIN, INPUT_PULLUP);
 
 		digitalWrite(POWER_PIN, LOW);
 		digitalWrite(PULLDOWN_PIN, LOW);
@@ -1363,6 +1369,64 @@ String send_fix_location()
 	return tnc2Raw;
 }
 
+void codec_setup()
+{
+	// start up I2C
+    Serial.println("Startup I2C bus");
+    Wire.begin(18, 23); // SDA, SCL WaveShare WM8960 I2C pins
+    if (!codec.begin()) {
+      Serial.println("Failed to initialize WM8960!");
+      while (1);
+    } else {
+      Serial.println("WM8960 initialized");
+    }
+
+	codec.enableVREF();
+	codec.enableVMID();
+	// Connect from DAC outputs to output mixer
+	codec.enableLD2LO();
+
+	// Set gainstage between booster mixer and output mixer
+	// Increase the gain to increase the volume
+	codec.setLB2LOVOL(WM8960_OUTPUT_MIXER_GAIN_0DB); // Set the gain for the left channel to 0dB
+
+	// Enable output mixers
+	codec.enableLOMIX();
+	// CLOCK STUFF, These settings will get you 16KHz sample rate, and class-d 
+	// freq at 705.6kHz
+	codec.enablePLL(); // Needed for class-d amp clock
+	codec.setPLLPRESCALE(WM8960_PLLPRESCALE_DIV_2);
+	codec.setSMD(WM8960_PLL_MODE_FRACTIONAL);
+	codec.setCLKSEL(WM8960_CLKSEL_PLL);
+	codec.setSYSCLKDIV(WM8960_SYSCLK_DIV_BY_2);
+	codec.setBCLKDIV(11); // Adjusted for 16KHz
+	codec.setDCLKDIV(WM8960_DCLKDIV_16);
+	codec.setPLLN(7);
+	codec.setPLLK(0x86, 0xC2, 0x26); // PLLK=86C226h
+	codec.setWL(WM8960_WL_16BIT);
+
+	codec.enablePeripheralMode();
+
+	// Enable DACs
+	codec.enableDacLeft();
+
+	codec.disableLoopBack();
+
+	// Default is "soft mute" on, so we must disable mute to make channels active
+	codec.disableDacMute(); 
+
+	codec.enableHeadphones();
+	codec.enableOUT3MIX(); // Provides VMID as buffer for headphone ground
+
+	Serial.println("Volume set to +0dB");
+	codec.setHeadphoneVolumeDB(0.0);
+
+	codec.enableSpeakers();
+	codec.setSpeakerVolumeDB(6.0);
+
+	Serial.println("Codec Setup complete. Connect via Bluetooth, play music, and listen on Headphone outputs.");
+} 
+
 void setup()
 {
 	int mode;
@@ -1382,11 +1446,10 @@ void setup()
 	pinMode(19, INPUT);
 	pinMode(18, INPUT);
 	pinMode(5, INPUT);
-	pinMode(15, INPUT);
+	pinMode(15, INPUT); 
 	digitalWrite(PTT_PIN, LOW);
 	digitalWrite(39, INPUT_PULLDOWN);
 	Serial.begin(115200);
-
 #ifdef OLED
 	Wire.begin();
 	Wire.setClock(100000L);
@@ -1412,7 +1475,7 @@ void setup()
 
 #ifdef I2S_INTERNAL
 	// Initialize the I2S peripheral
-	I2S_Init(I2S_MODE_DAC_BUILT_IN, I2S_BITS_PER_SAMPLE_16BIT);
+	I2S_Init();
 #else
 #ifndef V_REF_TO_GPIO
 	// Init ADC and Characteristics
@@ -1554,6 +1617,8 @@ void setup()
 	display.setTextSize(1);
 	display.display();
 #endif
+//   Init the codec
+    codec_setup();
 
 	enableLoopWDT();
 	// enableCore0WDT();
@@ -2146,7 +2211,7 @@ void taskDSP(void *pvParameters)
 					{
 						// inputSampleBuffer[i]>>=16; //Capture Left Channel
 						// pcm_out[i] &= 0xfff; // Clear MSB bit
-						pcm_out[i] <<= 4; // Up 12bit ADC -> 16bit
+					//  pcm_out[i] <<= 4; // Up 12bit ADC -> 16bit
 
 						// Auto DC offset
 						offset_new += pcm_out[i];
@@ -2196,7 +2261,7 @@ void taskDSP(void *pvParameters)
 		}
 		else
 		{
-			//รับเสียงจากเซิร์ฟเวอร์ M17 ออกลำโพง
+			//Receive sound from M17 server to speaker
 			if (pcmq.getCount() >= 80)
 			{
 				while (pcmq.getCount() >= 80)
@@ -2214,21 +2279,12 @@ void taskDSP(void *pvParameters)
 						audio_resample((short *)audio_in, (short *)audio_out, SAMPLE_RATE_CODEC2, SAMPLE_RATE, 80, 160, 1, &resample); // Change Sample rate 8Khz->16Khz
 						esp_agc_process(agc_handle, audio_out, audio_in, 160, SAMPLE_RATE);
 						int k = 0;
-						for (int i = 0; i < 160; i++)
-						{
-							float auf = (float)audio_in[i];
-							ppmUpdate((int)audio_in[i]);
-							auf *= 1.8;
-							audio_in[i] = (short)auf;
-							// Chanel Left
-							pcm_out[k] = (uint16_t)((int)audio_in[i] + 32768); // Convert sign to unsign wave
-							// Chanel Right
-							pcm_out[k + 1] = 0;
-							k += 2;
-						}
-						i2s_write_bytes(I2S_NUM_0, (char *)&pcm_out, (k * sizeof(uint16_t)), portMAX_DELAY);
-						free(audio_in);
-						free(audio_out);
+						#include "driver/i2s.h" // Include the necessary header file
+
+						// Rest of the code...
+						size_t bytes_written;
+						i2s_write(I2S_NUM_0, (char *)&pcm_out, (k * sizeof(uint16_t)), &bytes_written, portMAX_DELAY);
+					//	i2s_write(I2S_NUM_0, (char *)&pcm_out, (k * sizeof(uint16_t)), portMAX_DELAY);
 					}
 				}
 			}
@@ -2282,7 +2338,7 @@ esp_interface_t check_protocol()
 		Serial.println("Interface is ESP_IF_WIFI_AP");
 	else
 		Serial.println("Unknown interface!!");
-	current_wifi_interface = current_esp_interface;
+	current_wifi_interface = static_cast<wifi_interface_t>(current_esp_interface);
 	if (current_wifi_interface == WIFI_IF_STA)
 		Serial.println("Interface is WIFI_IF_STA");
 	else if (current_wifi_interface == WIFI_IF_AP)
@@ -2355,7 +2411,7 @@ void taskNetwork(void *pvParameters)
 	if (config.wifi_protocol != 1 && config.wifi_protocol != 3 && config.wifi_protocol != 7)
 		config.wifi_protocol = 7;
 	tcpip_adapter_get_esp_if(&current_esp_interface);
-	current_wifi_interface = current_esp_interface;
+	current_wifi_interface = static_cast<wifi_interface_t>(current_esp_interface);
 	esp_wifi_set_protocol(current_wifi_interface, config.wifi_protocol);
 	esp_err_t error_code = esp_wifi_get_protocol(current_wifi_interface, &current_protocol);
 	// esp_err_to_name_r(error_code,error_buf1,100);
@@ -2627,9 +2683,12 @@ void sendVoice(char *text)
 	pcmq.clean();
 	audioq.flush();
 	// linkedTo(text);
+	//Serial.println("<Setup timer>");
+
 	RxTimeout = millis() + 30000;
 	timerAlarmEnable(timer);
-	// sprintf(text, "a  b  c  d  l  n  g  y");
+	//Serial.println("<Timer set to 30S>");
+//	sprintf(text, "a  b  c  d  l  n  g  y");
 	Serial.println(text);
 	createVoice(text);
 	while (!pcmq.isEmpty())
@@ -2640,8 +2699,8 @@ void sendVoice(char *text)
 	}
 	RxTimeout = 0;
 
-	// audioq.clean();
-	// pcmq.clean();
+	//audioq.clean();
+	//pcmq.clean();
 	//  firstRX = false;
 	//  firstIdle = true;
 	Serial.println("<VOICE END>");

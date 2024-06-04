@@ -11,8 +11,8 @@
 #define SAMPLE_RATE 16000
 #define SAMPLE_RATE_CODEC2 8000
 #define PIN_I2S_BCLK 26
-#define PIN_I2S_LRC 5
-#define PIN_I2S_DIN 36
+#define PIN_I2S_LRC 32
+#define PIN_I2S_DIN 33
 #define PIN_I2S_DOUT 25
 
 typedef enum { LEFTCHANNEL = 0, RIGHTCHANNEL = 1 } SampleIndex;
@@ -32,7 +32,7 @@ typedef enum { LEFTCHANNEL = 0, RIGHTCHANNEL = 1 } SampleIndex;
 
 /// @parameter MODE : I2S_MODE_RX or I2S_MODE_TX
 /// @parameter BPS : I2S_BITS_PER_SAMPLE_16BIT or I2S_BITS_PER_SAMPLE_32BIT
-void I2S_Init(i2s_mode_t MODE, i2s_bits_per_sample_t BPS);
+void I2S_Init();
 
 /// I2S_Read() for I2S_MODE_RX
 /// @parameter data: pointer to buffer

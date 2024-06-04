@@ -10,6 +10,8 @@ extern "C"
 
 #define ADC_PATT_LEN_MAX (16)
 #define ADC_CHECK_UNIT(unit) RTC_MODULE_CHECK(adc_unit < ADC_UNIT_2, "ADC unit error, only support ADC1 for now", ESP_ERR_INVALID_ARG)
+#define RTC_MODULE_TAG "I2S"
+
 #define RTC_MODULE_CHECK(a, str, ret_val)                                             \
   if (!(a))                                                                           \
   {                                                                                   \
@@ -67,38 +69,55 @@ static esp_err_t adc_set_i2s_data_pattern(adc_unit_t adc_unit, int seq_num, adc_
   return ESP_OK;
 }
 
-void I2S_Init(i2s_mode_t MODE, i2s_bits_per_sample_t BPS)
+void I2S_Init()
 {
   i2s_config_t i2s_config = {
-      .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_TX | I2S_MODE_DAC_BUILT_IN | I2S_MODE_ADC_BUILT_IN),
+      .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_TX), // | I2S_MODE_DAC_BUILT_IN | I2S_MODE_ADC_BUILT_IN),
       .sample_rate = SAMPLE_RATE,
       .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
       .channel_format = I2S_CHANNEL_FMT_ALL_LEFT,
-	  .communication_format = (i2s_comm_format_t)I2S_COMM_FORMAT_I2S_MSB,
-	  .intr_alloc_flags = ESP_INTR_FLAG_LEVEL3, // lowest interrupt priority
+	    .communication_format = (i2s_comm_format_t)I2S_COMM_FORMAT_STAND_I2S, //I2S_COMM_FORMAT_I2S_MSB,
+	    .intr_alloc_flags = ESP_INTR_FLAG_LEVEL3, // lowest interrupt priority
       .dma_buf_count = 5,
       .dma_buf_len = 640,
-	  .use_apll =0
-    };
-
-  if (MODE == I2S_MODE_RX || MODE == I2S_MODE_TX) {
-    Serial.println("using I2S_MODE");
-    i2s_pin_config_t pin_config;
-    pin_config.bck_io_num = PIN_I2S_BCLK;
-    pin_config.ws_io_num = PIN_I2S_LRC;
-    if (MODE == I2S_MODE_RX) {
-      pin_config.data_out_num = I2S_PIN_NO_CHANGE;
-      pin_config.data_in_num = PIN_I2S_DIN;
-    } 
-    else if (MODE == I2S_MODE_TX) {
-      pin_config.data_out_num = PIN_I2S_DOUT;
-      pin_config.data_in_num = I2S_PIN_NO_CHANGE;
-    }
-
-    i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
-    i2s_set_pin(I2S_NUM_0, &pin_config);
-    i2s_set_clk(I2S_NUM_0, SAMPLE_RATE, BPS, I2S_CHANNEL_MONO);
+	    .use_apll =0
+  };
+  //if (MODE == I2S_MODE_RX || MODE == I2S_MODE_TX) {
+  Serial.println();
+  Serial.println("Start using I2S_MODE");
+  i2s_pin_config_t pin_config;
+  pin_config.bck_io_num = PIN_I2S_BCLK;
+  pin_config.ws_io_num = PIN_I2S_LRC;     
+  pin_config.data_in_num = PIN_I2S_DIN;    
+  pin_config.data_out_num = PIN_I2S_DOUT;         
+  esp_err_t err;
+  err = i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
+  if (err != ESP_OK) {
+    Serial.printf("Failed to install I2S driver: %d\n", err);
+    return;
+  }
+  err = i2s_set_pin(I2S_NUM_0, &pin_config);
+  if (err != ESP_OK) {
+    Serial.printf("Failed to set I2S pins: %d\n", err);
+    return;
+  }
+  err = i2s_set_clk(I2S_NUM_0, SAMPLE_RATE, I2S_BITS_PER_SAMPLE_16BIT, I2S_CHANNEL_MONO);
+  if (err != ESP_OK) {
+    Serial.printf("Failed to set I2S clock: %d\n", err);
+    return;
   } 
+  err = i2s_zero_dma_buffer(I2S_NUM_0);
+  if (err != ESP_OK) {
+    Serial.printf("Failed to clear I2S DMA buffer: %d\n", err);
+    return;
+  }
+  err = i2s_start(I2S_NUM_0);
+  if (err != ESP_OK) {
+    Serial.printf("Failed to start I2S: %d\n", err);
+    return;
+  } 
+}
+  /*
   else if (MODE == I2S_MODE_DAC_BUILT_IN || MODE == I2S_MODE_ADC_BUILT_IN) {
     Serial.println("using ADC_builtin");
 	if (i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL) != ESP_OK) {
@@ -125,16 +144,17 @@ void I2S_Init(i2s_mode_t MODE, i2s_bits_per_sample_t BPS)
     dac_output_enable(DAC_CHANNEL_2);
     dac_i2s_enable();
   }
+}*/
+
+int I2S_Read(char* data, int numData) {
+  size_t bytes_read;
+  i2s_read(I2S_NUM_0, (char *)data, numData, &bytes_read, portMAX_DELAY);
+  return bytes_read;
 }
 
-int I2S_Read(char *data, int numData)
-{
-  return i2s_read_bytes(I2S_NUM_0, (char *)data, numData, portMAX_DELAY);
-}
-
-void I2S_Write(char *data, int numData)
-{
-  i2s_write_bytes(I2S_NUM_0, (const char *)data, numData, portMAX_DELAY);
+void I2S_Write(char* data, int numData) {
+  size_t bytes_written;
+  i2s_write(I2S_NUM_0, (char *)data, numData, &bytes_written, portMAX_DELAY);
 }
 
 void MakeSampleStereo16(int16_t sample[2],char channels,char bps) {
