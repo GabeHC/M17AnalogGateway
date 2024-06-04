@@ -72,7 +72,7 @@ static esp_err_t adc_set_i2s_data_pattern(adc_unit_t adc_unit, int seq_num, adc_
 void I2S_Init()
 {
   i2s_config_t i2s_config = {
-      .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_TX), // | I2S_MODE_DAC_BUILT_IN | I2S_MODE_ADC_BUILT_IN),
+      .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX ), // | I2S_MODE_DAC_BUILT_IN | I2S_MODE_ADC_BUILT_IN),
       .sample_rate = SAMPLE_RATE,
       .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
       .channel_format = I2S_CHANNEL_FMT_ALL_LEFT,

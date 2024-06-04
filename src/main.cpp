@@ -38,7 +38,7 @@
 #include "Voice.h"
 #include <LMS.h>
 #include <DTMF.h>
-//#include "spiffs.h"
+// #include "spiffs.h"
 #include "I2S.h"
 #include "SparkFun_WM8960_Arduino_Library.h"
 
@@ -69,12 +69,12 @@ LMSClass LMS;
 #define ADC1_CHANNEL (ADC1_CHANNEL_0) // GPIO 36 = MIC_PIN
 #define V_REF_TO_GPIO				  // Remove comment on define to route v_ref to GPIO
 
-#ifdef SA818 
-//#define VBAT_PIN 39
-//#define WIRE 4
+#ifdef SA818
+// #define VBAT_PIN 39
+// #define WIRE 4
 #define POWER_PIN 4
 #define PULLDOWN_PIN 2
-//#define SQL_PIN 2 
+// #define SQL_PIN 2
 HardwareSerial SerialRF(1);
 #endif
 
@@ -106,8 +106,8 @@ extern hw_timer_t *timer;
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 // For a connection via I2C using the Arduino Wire include:
-//#include <Wire.h>		 // Only needed for Arduino 1.6.5 and earlier
-//#include "SSD1306Wire.h" // legacy: #include "SSD1306.h"
+// #include <Wire.h>		 // Only needed for Arduino 1.6.5 and earlier
+// #include "SSD1306Wire.h" // legacy: #include "SSD1306.h"
 // OR #include "SH1106Wire.h"   // legacy: #include "SH1106.h"
 
 // Initialize the OLED display using Arduino Wire:
@@ -150,9 +150,9 @@ byte daysavetime = 1;
 
 const int natural = 1;
 
-//กรองความถี่สูงผ่าน >300Hz  HPF Butterworth Filter. 0-300Hz ช่วงความถี่ต่ำใช้กับโทน CTCSS/DCS ในวิทยุสื่อสารจะถูกรองทิ้ง
+// กรองความถี่สูงผ่าน >300Hz  HPF Butterworth Filter. 0-300Hz ช่วงความถี่ต่ำใช้กับโทน CTCSS/DCS ในวิทยุสื่อสารจะถูกรองทิ้ง
 ButterworthFilter hp_filter(300, 8000, ButterworthFilter::ButterworthFilter::Highpass, 1);
-//กรองความถี่ต่ำผ่าน <3.5KHz  LPF Butterworth Filter. ความถี่เสียงที่มากกว่า 3KHz ไม่ใช่ความถี่เสียงคนพูดจะถูกกรองทิ้ง
+// กรองความถี่ต่ำผ่าน <3.5KHz  LPF Butterworth Filter. ความถี่เสียงที่มากกว่า 3KHz ไม่ใช่ความถี่เสียงคนพูดจะถูกกรองทิ้ง
 ButterworthFilter lp_filter(4000, 8000, ButterworthFilter::ButterworthFilter::Lowpass, 1);
 #ifdef I2S_INTERNAL
 ButterworthFilter hp16K_filter(300, 16000, ButterworthFilter::ButterworthFilter::Highpass, 1);
@@ -166,7 +166,7 @@ CODEC2 *codec2_1600;
 // and the sampling rate.
 DTMF dtmf = DTMF(160, 8000.0F);
 
-//กำหนดค่าเริ่มต้นใช้โหมดของ Codec2
+// กำหนดค่าเริ่มต้นใช้โหมดของ Codec2
 int mode = CODEC2_MODE_3200;
 
 // Queue<char> audioq(300);
@@ -255,7 +255,7 @@ void saveEEPROM()
 #endif
 }
 
-//กำหนดค่าคอนฟิกซ์เริ่มต้น
+// กำหนดค่าคอนฟิกซ์เริ่มต้น
 void defaultConfig()
 {
 	Serial.println(F("Default configure mode!"));
@@ -373,7 +373,7 @@ void ppmUpdate(int adc)
 		ppm_Level = (ppm_Level * 16383) >> 14;
 }
 
-//เข้ารหัสและถอดรหัสเสียง Codec2
+// Encode and decode sound with Codec2
 audio_resample_config_t resample;
 #ifdef I2S_INTERNAL
 uint16_t pcm_out[320];
@@ -455,7 +455,7 @@ void process_audio()
 						if (dtmf_idx >= sizeof(dtmf_command))
 							nochar_count = 1000;
 							// Print the magnitudes for debugging
-//#define DEBUG_PRINT
+// #define DEBUG_PRINT
 #ifdef DEBUG_PRINT
 						for (int i = 0; i < 8; i++)
 						{
@@ -480,23 +480,23 @@ void process_audio()
 			//  dBV = 20 * log(mVrms);
 
 			bp_filter(audiof, pcmWidth);
-			//#endif
-			//  ts=millis();
-			// if (1)
-			// {
-			// 	short *audioIn = (short *)malloc(pcmWidth * sizeof(short));
-			// 	if (audioIn != NULL)
-			// 	{
-			// 		for (int i = 0; i < pcmWidth; i++)
-			// 			audioIn[i] = (int16_t)audiof[i];
-			// 		memset(&audio_in[0], 0, pcmWidth);
-			// 		esp_agc_process(agc_handle, (short *)&audioIn[0], &audio_in[0], 80, 8000);	 // Audomatic gain control
-			// 		esp_agc_process(agc_handle, (short *)&audioIn[80], &audio_in[80], 80, 8000); // Audomatic gain control
-			// 		if (pcmWidth == 320)
-			// 		{
-			// 			esp_agc_process(agc_handle, (short *)&audioIn[160], &audio_in[160], 80, 8000); // Audomatic gain control
-			// 			esp_agc_process(agc_handle, (short *)&audioIn[240], &audio_in[240], 80, 8000); // Audomatic gain control
-			// 		}
+			// #endif
+			//   ts=millis();
+			//  if (1)
+			//  {
+			//  	short *audioIn = (short *)malloc(pcmWidth * sizeof(short));
+			//  	if (audioIn != NULL)
+			//  	{
+			//  		for (int i = 0; i < pcmWidth; i++)
+			//  			audioIn[i] = (int16_t)audiof[i];
+			//  		memset(&audio_in[0], 0, pcmWidth);
+			//  		esp_agc_process(agc_handle, (short *)&audioIn[0], &audio_in[0], 80, 8000);	 // Audomatic gain control
+			//  		esp_agc_process(agc_handle, (short *)&audioIn[80], &audio_in[80], 80, 8000); // Audomatic gain control
+			//  		if (pcmWidth == 320)
+			//  		{
+			//  			esp_agc_process(agc_handle, (short *)&audioIn[160], &audio_in[160], 80, 8000); // Audomatic gain control
+			//  			esp_agc_process(agc_handle, (short *)&audioIn[240], &audio_in[240], 80, 8000); // Audomatic gain control
+			//  		}
 
 			// 		for (int i = 0; i < pcmWidth; i++)
 			// 			audiof[i] = (float)audio_in[i];
@@ -803,7 +803,7 @@ hw_timer_t *timer = NULL;
 int offset_count = 0;
 int adcR_old = 0;
 // RTC_DATA_ATTR float adcf;
-//แซมปลิ้งเสียง 8,000 ครั้งต่อวินาที ทั้งเข้า ADC และออก DAC
+//Sampling sound 8,000 times per second, both input ADC and output DAC
 #ifndef I2S_INTERNAL
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 void IRAM_ATTR onTime()
@@ -1001,7 +1001,7 @@ void SA818_INIT(bool boot)
 		SerialRF.begin(9600, SERIAL_8N1, 14, 13);
 		pinMode(POWER_PIN, OUTPUT);
 		pinMode(PULLDOWN_PIN, OUTPUT);
-	//	pinMode(SQL_PIN, INPUT_PULLUP);
+		//	pinMode(SQL_PIN, INPUT_PULLUP);
 
 		digitalWrite(POWER_PIN, LOW);
 		digitalWrite(PULLDOWN_PIN, LOW);
@@ -1308,19 +1308,19 @@ boolean APRSConnect()
 	// Serial.println(con);
 	if (con <= 0)
 	{
-		if (!aprsClient.connect(config.aprs_host, config.aprs_port)) //เชื่อมต่อกับเซิร์ฟเวอร์ TCP
+		if (!aprsClient.connect(config.aprs_host, config.aprs_port)) // เชื่อมต่อกับเซิร์ฟเวอร์ TCP
 		{
 			// Serial.print(".");
 			delay(100);
 			cnt++;
-			if (cnt > 50) //วนร้องขอการเชื่อมต่อ 50 ครั้ง ถ้าไม่ได้ให้รีเทิร์นฟังค์ชั่นเป็น False
+			if (cnt > 50) // วนร้องขอการเชื่อมต่อ 50 ครั้ง ถ้าไม่ได้ให้รีเทิร์นฟังค์ชั่นเป็น False
 				return false;
 		}
 		short pass = aprs_passcode(config.mycall);
-		//ขอเชื่อมต่อกับ aprsc
-		// if (config.aprs_ssid == 0)
-		//     login = "user " + String(config.aprs_ycall) + " pass " + String(pass) + " vers M17AGate V" + String(VERSION) + " filter m/1";
-		// else
+		// ขอเชื่อมต่อกับ aprsc
+		//  if (config.aprs_ssid == 0)
+		//      login = "user " + String(config.aprs_ycall) + " pass " + String(pass) + " vers M17AGate V" + String(VERSION) + " filter m/1";
+		//  else
 		login = "user " + String(config.mycall) + "-" + String(config.mymodule) + " pass " + String(pass) + " vers M17AGate V" + String(VERSION) + " filter m/1";
 		aprsClient.println(login);
 		// Serial.println(login);
@@ -1333,9 +1333,9 @@ boolean APRSConnect()
 void DD_DDDDDtoDDMMSS(float DD_DDDDD, int *DD, int *MM, int *SS)
 {
 
-	*DD = (int)DD_DDDDD;					   //сделали из 37.45545 это 37 т.е. Градусы
-	*MM = (int)((DD_DDDDD - *DD) * 60);		   //получили минуты
-	*SS = ((DD_DDDDD - *DD) * 60 - *MM) * 100; //получили секунды
+	*DD = (int)DD_DDDDD;					   // сделали из 37.45545 это 37 т.е. Градусы
+	*MM = (int)((DD_DDDDD - *DD) * 60);		   // получили минуты
+	*SS = ((DD_DDDDD - *DD) * 60 - *MM) * 100; // получили секунды
 }
 
 String send_fix_location()
@@ -1372,14 +1372,18 @@ String send_fix_location()
 void codec_setup()
 {
 	// start up I2C
-    Serial.println("Startup I2C bus");
-    Wire.begin(18, 23); // SDA, SCL WaveShare WM8960 I2C pins
-    if (!codec.begin()) {
-      Serial.println("Failed to initialize WM8960!");
-      while (1);
-    } else {
-      Serial.println("WM8960 initialized");
-    }
+	Serial.println("Startup I2C bus");
+	Wire.begin(18, 23); // SDA, SCL WaveShare WM8960 I2C pins
+	if (!codec.begin())
+	{
+		Serial.println("Failed to initialize WM8960!");
+		while (1)
+			;
+	}
+	else
+	{
+		Serial.println("WM8960 initialized");
+	}
 
 	codec.enableVREF();
 	codec.enableVMID();
@@ -1392,7 +1396,7 @@ void codec_setup()
 
 	// Enable output mixers
 	codec.enableLOMIX();
-	// CLOCK STUFF, These settings will get you 16KHz sample rate, and class-d 
+	// CLOCK STUFF, These settings will get you 16KHz sample rate, and class-d
 	// freq at 705.6kHz
 	codec.enablePLL(); // Needed for class-d amp clock
 	codec.setPLLPRESCALE(WM8960_PLLPRESCALE_DIV_2);
@@ -1413,7 +1417,7 @@ void codec_setup()
 	codec.disableLoopBack();
 
 	// Default is "soft mute" on, so we must disable mute to make channels active
-	codec.disableDacMute(); 
+	codec.disableDacMute();
 
 	codec.enableHeadphones();
 	codec.enableOUT3MIX(); // Provides VMID as buffer for headphone ground
@@ -1425,7 +1429,7 @@ void codec_setup()
 	codec.setSpeakerVolumeDB(6.0);
 
 	Serial.println("Codec Setup complete. Connect via Bluetooth, play music, and listen on Headphone outputs.");
-} 
+}
 
 void setup()
 {
@@ -1446,7 +1450,7 @@ void setup()
 	pinMode(19, INPUT);
 	pinMode(18, INPUT);
 	pinMode(5, INPUT);
-	pinMode(15, INPUT); 
+	pinMode(15, INPUT);
 	digitalWrite(PTT_PIN, LOW);
 	digitalWrite(39, INPUT_PULLDOWN);
 	Serial.begin(115200);
@@ -1505,7 +1509,6 @@ void setup()
 	// }
 #endif
 #endif
-
 	// esp_task_wdt_init(TWDT_TIMEOUT_S, false);
 	Serial.println();
 	Serial.println("M17 Analog Gateway V" + String(VERSION));
@@ -1549,7 +1552,7 @@ void setup()
 	digitalWrite(LED_TX, LOW);
 	digitalWrite(LED_RX, LOW);
 
-	//ตรวจสอบคอนฟิกซ์ผิดพลาด
+	// ตรวจสอบคอนฟิกซ์ผิดพลาด
 	ptr = (byte *)&config;
 	EEPROM.readBytes(1, ptr, sizeof(Configuration));
 	uint8_t chkSum = checkSum(ptr, sizeof(Configuration));
@@ -1617,12 +1620,23 @@ void setup()
 	display.setTextSize(1);
 	display.display();
 #endif
-//   Init the codec
-    codec_setup();
+	//   Init the codec
+	codec_setup();
 
 	enableLoopWDT();
 	// enableCore0WDT();
 	enableCore1WDT();
+#ifdef SDCARD
+	SPI.begin(SDCARD_CLK, SDCARD_MISO, SDCARD_MOSI, SDCARD_CS);
+	if (!SD.begin(SDCARD_CS, SPI, 4000000))
+	{
+		Serial.println("SD Card Mount Failed");
+	}
+	else
+	{
+		Serial.println("SD Card Mount Success");
+	}
+#endif
 
 	xTaskCreatePinnedToCore(
 		taskNetwork,		/* Function to implement the task */
@@ -2211,7 +2225,7 @@ void taskDSP(void *pvParameters)
 					{
 						// inputSampleBuffer[i]>>=16; //Capture Left Channel
 						// pcm_out[i] &= 0xfff; // Clear MSB bit
-					//  pcm_out[i] <<= 4; // Up 12bit ADC -> 16bit
+						//  pcm_out[i] <<= 4; // Up 12bit ADC -> 16bit
 
 						// Auto DC offset
 						offset_new += pcm_out[i];
@@ -2261,7 +2275,7 @@ void taskDSP(void *pvParameters)
 		}
 		else
 		{
-			//Receive sound from M17 server to speaker
+			// Receive sound from M17 server to speaker
 			if (pcmq.getCount() >= 80)
 			{
 				while (pcmq.getCount() >= 80)
@@ -2279,12 +2293,11 @@ void taskDSP(void *pvParameters)
 						audio_resample((short *)audio_in, (short *)audio_out, SAMPLE_RATE_CODEC2, SAMPLE_RATE, 80, 160, 1, &resample); // Change Sample rate 8Khz->16Khz
 						esp_agc_process(agc_handle, audio_out, audio_in, 160, SAMPLE_RATE);
 						int k = 0;
-						#include "driver/i2s.h" // Include the necessary header file
 
 						// Rest of the code...
 						size_t bytes_written;
 						i2s_write(I2S_NUM_0, (char *)&pcm_out, (k * sizeof(uint16_t)), &bytes_written, portMAX_DELAY);
-					//	i2s_write(I2S_NUM_0, (char *)&pcm_out, (k * sizeof(uint16_t)), portMAX_DELAY);
+						//	i2s_write(I2S_NUM_0, (char *)&pcm_out, (k * sizeof(uint16_t)), portMAX_DELAY);
 					}
 				}
 			}
@@ -2292,7 +2305,7 @@ void taskDSP(void *pvParameters)
 			{
 				if (config.sql_active == false)
 				{
-					//รอเสียงจากการใช้งาน vox
+					// รอเสียงจากการใช้งาน vox
 					i2s_read(I2S_NUM_0, (char *)&pcm_out, (320 * sizeof(int16_t)), &bytesRead, 10); // Block but yield to other tasks
 					if (bytesRead >= (320 * sizeof(uint16_t)))
 					{
@@ -2386,7 +2399,7 @@ void taskNetwork(void *pvParameters)
 		{
 			WiFi.mode(WIFI_AP);
 		}
-		//กำหนดค่าการทำงานไวไฟเป็นแอสเซสพ้อย
+		// กำหนดค่าการทำงานไวไฟเป็นแอสเซสพ้อย
 		WiFi.softAP(config.wifi_ap_ssid, config.wifi_ap_pass); // Start HOTspot removing password will disable security
 		WiFi.softAPConfig(local_IP, gateway, subnet);
 		Serial.print("Access point running. IP address: ");
@@ -2502,7 +2515,7 @@ void taskNetwork(void *pvParameters)
 						if (aprsClient.available())
 						{
 							// pingTimeout = millis() + 300000;                // Reset ping timout
-							String line = aprsClient.readStringUntil('\n'); //อ่านค่าที่ Server ตอบหลับมาทีละบรรทัด
+							String line = aprsClient.readStringUntil('\n'); // อ่านค่าที่ Server ตอบหลับมาทีละบรรทัด
 #ifdef DEBUG_IS
 							printTime();
 							Serial.print("APRS-IS ");
@@ -2631,7 +2644,7 @@ void taskNetwork(void *pvParameters)
 				}
 			}
 		} // wifi config
-	}	  // Loop for
+	} // Loop for
 }
 
 void frmUpdate(String str)
@@ -2683,12 +2696,13 @@ void sendVoice(char *text)
 	pcmq.clean();
 	audioq.flush();
 	// linkedTo(text);
-	//Serial.println("<Setup timer>");
-
+	// Serial.println("<Setup timer>");
 	RxTimeout = millis() + 30000;
+#ifndef I2S_INTERNAL
 	timerAlarmEnable(timer);
-	//Serial.println("<Timer set to 30S>");
-//	sprintf(text, "a  b  c  d  l  n  g  y");
+#endif
+	// Serial.println("<Timer set to 30S>");
+	//	sprintf(text, "a  b  c  d  l  n  g  y");
 	Serial.println(text);
 	createVoice(text);
 	while (!pcmq.isEmpty())
@@ -2699,10 +2713,10 @@ void sendVoice(char *text)
 	}
 	RxTimeout = 0;
 
-	//audioq.clean();
-	//pcmq.clean();
-	//  firstRX = false;
-	//  firstIdle = true;
+	// audioq.clean();
+	// pcmq.clean();
+	//   firstRX = false;
+	//   firstIdle = true;
 	Serial.println("<VOICE END>");
 #ifdef SA818
 	digitalWrite(POWER_PIN, LOW);
