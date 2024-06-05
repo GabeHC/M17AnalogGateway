@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "esp32-hal.h": "c"
+        "esp32-hal.h": "c",
+        "*.tcc": "cpp",
+        "algorithm": "cpp"
     }
 }

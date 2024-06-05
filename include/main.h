@@ -150,6 +150,6 @@ void defaultConfig();
 String getValue(String data, char separator, int index);
 boolean isValidNumber(String str);
 void frmUpdate(String str);
-void sendVoice(char *text);
+void playVoice(char *text);
 
 #endif

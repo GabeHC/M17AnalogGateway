@@ -175,7 +175,7 @@ cppQueue pcmq(sizeof(int16_t), PCM_BUFF, IMPLEMENTATION);	   // Instantiate queu
 // cppQueue adcq(sizeof(int16_t), 2000, IMPLEMENTATION);  // Instantiate queue
 
 char current_module = 'D';
-bool voicTx = false;
+bool voiceTX = false;
 bool linkToFlage = false;
 bool notLinkFlage = false;
 bool voiceIPFlage = false;
@@ -255,7 +255,7 @@ void saveEEPROM()
 #endif
 }
 
-// กำหนดค่าคอนฟิกซ์เริ่มต้น
+// Set initial config
 void defaultConfig()
 {
 	Serial.println(F("Default configure mode!"));
@@ -684,7 +684,7 @@ void process_audio()
 					}
 					break;
 					case 'A':
-						voicTx = true;
+						voiceTX = true;
 						break;
 					case 'B':
 						voiceIPFlage = true;
@@ -696,8 +696,7 @@ void process_audio()
 				memset(dtmf_command, 0, sizeof(dtmf_command));
 				dtmf_idx = 0;
 				return;
-			}
-		}
+			}		}
 
 		int packetSize = audioq.getCount();
 		if (packetSize >= 8 && (pcmq.getCount() < (PCM_BUFF - pcmWidth)))
@@ -803,7 +802,7 @@ hw_timer_t *timer = NULL;
 int offset_count = 0;
 int adcR_old = 0;
 // RTC_DATA_ATTR float adcf;
-//Sampling sound 8,000 times per second, both input ADC and output DAC
+// Sampling sound 8,000 times per second, both input ADC and output DAC
 #ifndef I2S_INTERNAL
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 void IRAM_ATTR onTime()
@@ -1369,35 +1368,24 @@ String send_fix_location()
 	return tnc2Raw;
 }
 
-void codec_setup()
-{
+void codec_setup() { // Setup the WM8960 codec
 	// start up I2C
 	Serial.println("Startup I2C bus");
-	Wire.begin(18, 23); // SDA, SCL WaveShare WM8960 I2C pins
-	if (!codec.begin())
-	{
+	Wire.begin(SDA_PIN, SCL_PIN); // SDA, SCL WaveShare WM8960 I2C pins
+	if (!codec.begin())	{
 		Serial.println("Failed to initialize WM8960!");
-		while (1)
-			;
-	}
+		while (1)	;	}
 	else
-	{
 		Serial.println("WM8960 initialized");
-	}
-
 	codec.enableVREF();
 	codec.enableVMID();
 	// Connect from DAC outputs to output mixer
 	codec.enableLD2LO();
-
 	// Set gainstage between booster mixer and output mixer
 	// Increase the gain to increase the volume
 	codec.setLB2LOVOL(WM8960_OUTPUT_MIXER_GAIN_0DB); // Set the gain for the left channel to 0dB
-
-	// Enable output mixers
-	codec.enableLOMIX();
-	// CLOCK STUFF, These settings will get you 16KHz sample rate, and class-d
-	// freq at 705.6kHz
+	codec.enableLOMIX(); // Enable output mixers
+	// CLOCK STUFF, These settings will get you 16KHz sample rate, and class-d freq at 705.6kHz
 	codec.enablePLL(); // Needed for class-d amp clock
 	codec.setPLLPRESCALE(WM8960_PLLPRESCALE_DIV_2);
 	codec.setSMD(WM8960_PLL_MODE_FRACTIONAL);
@@ -1408,26 +1396,16 @@ void codec_setup()
 	codec.setPLLN(7);
 	codec.setPLLK(0x86, 0xC2, 0x26); // PLLK=86C226h
 	codec.setWL(WM8960_WL_16BIT);
-
 	codec.enablePeripheralMode();
-
-	// Enable DACs
-	codec.enableDacLeft();
-
+	codec.enableDacLeft(); // Enable DACs
 	codec.disableLoopBack();
-
-	// Default is "soft mute" on, so we must disable mute to make channels active
-	codec.disableDacMute();
-
+	codec.disableDacMute(); // Default is "soft mute" on, so we must disable mute to make channels active
 	codec.enableHeadphones();
 	codec.enableOUT3MIX(); // Provides VMID as buffer for headphone ground
-
 	Serial.println("Volume set to +0dB");
 	codec.setHeadphoneVolumeDB(0.0);
-
 	codec.enableSpeakers();
 	codec.setSpeakerVolumeDB(6.0);
-
 	Serial.println("Codec Setup complete. Connect via Bluetooth, play music, and listen on Headphone outputs.");
 }
 
@@ -1442,6 +1420,7 @@ void setup()
 	pinMode(LED_RX, OUTPUT);
 	pinMode(LED_TX, OUTPUT);
 	pinMode(MIC_PIN, INPUT);
+	digitalWrite(PTT_PIN, LOW); /*
 	pinMode(39, INPUT);
 	pinMode(34, INPUT);
 	pinMode(35, INPUT);
@@ -1450,9 +1429,8 @@ void setup()
 	pinMode(19, INPUT);
 	pinMode(18, INPUT);
 	pinMode(5, INPUT);
-	pinMode(15, INPUT);
-	digitalWrite(PTT_PIN, LOW);
-	digitalWrite(39, INPUT_PULLDOWN);
+	pinMode(15, INPUT); 
+	digitalWrite(39, INPUT_PULLDOWN); */
 	Serial.begin(115200);
 #ifdef OLED
 	Wire.begin();
@@ -1672,10 +1650,7 @@ void loop()
 {
 	vTaskDelay(10 / portTICK_PERIOD_MS);
 	// #ifdef SA818
-	// 	if (SerialRF.available())
-	// 	{
-	// 		Serial.print(Serial.readString());
-	// 	}
+	// 	if (SerialRF.available()) Serial.print(Serial.readString());
 	// #endif
 	if (digitalRead(0) == LOW)
 	{
@@ -1699,11 +1674,11 @@ void loop()
 				defaultConfig();
 				Serial.println("SYSTEM REBOOT NOW!");
 				esp_restart();
-			}
+			} /*
 			else
 			{
-				voicTx = true;
-			}
+			//	voiceTX = true;
+			}*/
 			btn_count = 0;
 		}
 	}
@@ -1743,28 +1718,28 @@ void taskUI(void *pvParameters)
 			delay(1000);
 			linkToFlage = false;
 			sprintf(text, "g %s  %c", config.reflector_name, current_module);
-			sendVoice(text);
+			playVoice(text);
 		}
 		if (notLinkFlage)
 		{
 			delay(1000);
 			notLinkFlage = false;
 			sprintf(text, " n ");
-			sendVoice(text);
+			playVoice(text);
 		}
-		if (voicTx)
+		if (voiceTX)
 		{
 			delay(1000);
-			voicTx = false;
+			voiceTX = false;
 			sprintf(text, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXZ");
-			sendVoice(text);
+			playVoice(text);
 		}
 		if (voiceIPFlage)
 		{
 			delay(1000);
 			voiceIPFlage = false;
 			sprintf(text, "IP %s", WiFi.localIP().toString().c_str());
-			sendVoice(text);
+			playVoice(text);
 		}
 
 #ifdef OLED
@@ -2023,7 +1998,7 @@ void taskUI(void *pvParameters)
 				idleTimeout = 15;
 				// idleTimeout = millis();
 			}
-			else
+			else  // Not Vox mode
 			{
 				// End Transmit
 				if (tx)
@@ -2042,10 +2017,10 @@ void taskUI(void *pvParameters)
 					pcmq.clean();
 					terminateM17();
 
-#ifdef I2S_INTERNAL
-					dac_output_disable(DAC_CHANNEL_1);
-					dac_output_disable(DAC_CHANNEL_2);
-					dac_i2s_disable();
+#ifdef I2S_INTERNAL             
+					//dac_output_disable(DAC_CHANNEL_1);
+					//dac_output_disable(DAC_CHANNEL_2);
+					//dac_i2s_disable();
 #else
 					ledcWrite(0, 0);
 #endif
@@ -2171,8 +2146,8 @@ void taskUI(void *pvParameters)
 #else
 					dac_output_enable(DAC_CHANNEL_2);
 					dac_i2s_enable();
-#endif
-#endif
+#endif // I2S_INTERNAL
+#endif // OLED
 				}
 				// #ifdef OLED
 				// 				i = ppm_Level >> 6;
@@ -2189,8 +2164,8 @@ void taskUI(void *pvParameters)
 				// 				// display.print("dBV");
 				// 				display.display();
 				// #endif
-			}
-		}
+			} // End RX
+		} 
 	}
 }
 
@@ -2225,7 +2200,7 @@ void taskDSP(void *pvParameters)
 					{
 						// inputSampleBuffer[i]>>=16; //Capture Left Channel
 						// pcm_out[i] &= 0xfff; // Clear MSB bit
-						//  pcm_out[i] <<= 4; // Up 12bit ADC -> 16bit
+						//   pcm_out[i] <<= 4; // Up 12bit ADC -> 16bit
 
 						// Auto DC offset
 						offset_new += pcm_out[i];
@@ -2270,14 +2245,16 @@ void taskDSP(void *pvParameters)
 					}
 					free(audio_in);
 					free(audio_out);
-				}
-			}
-		}
+					codec.setSpeakerVolume(0);			
+				} // read something from I2S
+			} 
+		}  // End TX
 		else
 		{
 			// Receive sound from M17 server to speaker
 			if (pcmq.getCount() >= 80)
 			{
+				codec.setSpeakerVolume(110);
 				while (pcmq.getCount() >= 80)
 				{
 					short *audio_in = (short *)malloc(160 * sizeof(short));
@@ -2289,16 +2266,21 @@ void taskDSP(void *pvParameters)
 							pcmq.pop(&adcR);
 							audio_in[i] = (int16_t)adcR;
 						}
-
 						audio_resample((short *)audio_in, (short *)audio_out, SAMPLE_RATE_CODEC2, SAMPLE_RATE, 80, 160, 1, &resample); // Change Sample rate 8Khz->16Khz
 						esp_agc_process(agc_handle, audio_out, audio_in, 160, SAMPLE_RATE);
-						int k = 0;
-
+						int k = 160;
 						// Rest of the code...
 						size_t bytes_written;
-						i2s_write(I2S_NUM_0, (char *)&pcm_out, (k * sizeof(uint16_t)), &bytes_written, portMAX_DELAY);
+						i2s_write(I2S_NUM_0, (char *)audio_in, (k * sizeof(uint16_t)), &bytes_written, portMAX_DELAY);
+						#ifdef DEBUG  
+						Serial.print(".");
+						#endif
+					//	i2s_write(I2S_NUM_0, (char *)&pcm_out, (k * sizeof(uint16_t)), &bytes_written, portMAX_DELAY);
 						//	i2s_write(I2S_NUM_0, (char *)&pcm_out, (k * sizeof(uint16_t)), portMAX_DELAY);
 					}
+					codec.setSpeakerVolume(0);
+					free(audio_in);
+					free(audio_out);
 				}
 			}
 			else
@@ -2677,7 +2659,7 @@ void frmUpdate(String str)
 	config.aprs = false;
 }
 
-void sendVoice(char *text)
+void playVoice(char *text)
 {
 #ifdef SA818
 	digitalWrite(POWER_PIN, config.rf_power);
@@ -2698,7 +2680,7 @@ void sendVoice(char *text)
 	// linkedTo(text);
 	// Serial.println("<Setup timer>");
 	RxTimeout = millis() + 30000;
-#ifndef I2S_INTERNAL
+#ifndef I2S_INTERNAL // no timer is needed for I2S_INTERNAL
 	timerAlarmEnable(timer);
 #endif
 	// Serial.println("<Timer set to 30S>");
@@ -2713,8 +2695,8 @@ void sendVoice(char *text)
 	}
 	RxTimeout = 0;
 
-	// audioq.clean();
-	// pcmq.clean();
+	audioq.clean();
+	pcmq.clean();
 	//   firstRX = false;
 	//   firstIdle = true;
 	Serial.println("<VOICE END>");
