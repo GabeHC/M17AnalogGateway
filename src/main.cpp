@@ -1464,10 +1464,10 @@ void codec_setup2()
   codec.enableHeadphones();
   codec.enableOUT3MIX(); // Provides VMID as buffer for headphone ground
 
-//  codec.enableSpeakers();
+ // codec.enableSpeakers();
 
-//  Serial.println("Volume set to +0dB");
-//  codec.setSpeakerVolumeDB(0.0);
+ // Serial.println("Volume set to +0dB");
+ // codec.setSpeakerVolumeDB(-12.0);
 
   Serial.println("Volume set to +0dB");
   codec.setHeadphoneVolumeDB(0.00);
@@ -1527,7 +1527,7 @@ void codec_setup() { // Setup the WM8960 codec
 	codec.setHeadphoneVolumeDB(-12.0);
 
 //	codec.enableSpeakers();
-//	codec.setSpeakerVolumeDB(0.0);
+//	codec.setSpeakerVolumeDB(-6.0);
 
 	Serial.println("WM8960 Codec Setup complete.");
 }
@@ -2376,7 +2376,7 @@ void taskDSP(void *pvParameters)
 					{
 						adcR = (int16_t)audio_out[i];
 						pcmq.push(&adcR);
-					//	Serial.printf("%d,", adcR);
+					//	Serial.printf("%d\n", adcR);
 					}
 					free(audio_in);
 					free(audio_out);
@@ -2417,7 +2417,7 @@ void taskDSP(void *pvParameters)
 			{
 				if (config.sql_active == false)
 				{
-					// รอเสียงจากการใช้งาน vox
+					// Wait for voice input from vox usage
 					i2s_read(I2S_NUM_0, (char *)&pcm_out, (320 * sizeof(int16_t)), &bytesRead, 10); // Block but yield to other tasks
 					if (bytesRead >= (320 * sizeof(uint16_t)))
 					{
@@ -2792,7 +2792,7 @@ void frmUpdate(String str)
 void playVoice(char *text)
 {
 #ifdef SA818
-	digitalWrite(POWER_PIN, config.rf_power);
+	//digitalWrite(POWER_PIN, config.rf_power);
 #endif
 	digitalWrite(PTT_PIN, HIGH); // PTT Key talk to radio
 	digitalWrite(LED_TX, HIGH);
@@ -2827,6 +2827,9 @@ void playVoice(char *text)
 
 	audioq.clean();
 	pcmq.clean();
+	// Stop and start the I2S driver to clear the DMA buffer
+    i2s_stop(I2S_NUM_0);
+    i2s_start(I2S_NUM_0);
 	//   firstRX = false;
 	//   firstIdle = true;
 	Serial.println("<VOICE END>");
