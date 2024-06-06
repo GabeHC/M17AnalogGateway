@@ -70,7 +70,7 @@ static esp_err_t adc_set_i2s_data_pattern(adc_unit_t adc_unit, int seq_num, adc_
 }
 
 void I2S_Init()
-{
+{  
   i2s_config_t i2s_config = {
       .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX ), // | I2S_MODE_DAC_BUILT_IN | I2S_MODE_ADC_BUILT_IN),
       .sample_rate = SAMPLE_RATE,
@@ -81,7 +81,7 @@ void I2S_Init()
       .dma_buf_count = 5,
       .dma_buf_len = 640,
 	    .use_apll =0
-  };
+  }; 
   //if (MODE == I2S_MODE_RX || MODE == I2S_MODE_TX) {
   Serial.println();
   Serial.println("Start using I2S_MODE");
@@ -116,7 +116,7 @@ void I2S_Init()
     Serial.printf("Failed to start I2S: %d\n", err);
     return;
   } 
-}
+} 
   /*
   else if (MODE == I2S_MODE_DAC_BUILT_IN || MODE == I2S_MODE_ADC_BUILT_IN) {
     Serial.println("using ADC_builtin");

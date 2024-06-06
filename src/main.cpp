@@ -275,10 +275,10 @@ void defaultConfig()
 	sprintf(config.reflector_host, "203.150.19.24");
 	sprintf(config.reflector_name, "M17-THA");
 	config.reflector_port = 17000;
-	config.reflector_module = 'D';
+	config.reflector_module = 'X';
 	sprintf(config.authUser, "admin");
 	sprintf(config.authPass, "admin");
-	sprintf(config.mycall, "N0CALL");
+	sprintf(config.mycall, "BV5DJ");
 	config.mymodule = 'R';
 	config.aprs = false;
 	config.wifi = true;
@@ -293,23 +293,23 @@ void defaultConfig()
 	config.vox_level = 30;
 	config.sql = true;
 	config.sql_active = 1;
-	config.agc = false;
+	config.agc = true;
 	config.noise = true;
 	config.codec2_mode = CODEC2_MODE_3200;
 #ifdef SA818
-	config.freq_rx = 145.5875F;
-	config.freq_tx = 145.5875F;
+	config.freq_rx = 434.025F;
+	config.freq_tx = 434.025F;
 	config.offset_rx = 0;
 	config.offset_tx = 0;
-	config.tone_rx = 0;
-	config.tone_tx = 0;
+	config.tone_rx = 18;
+	config.tone_tx = 18;
 	config.band = 0;
 	config.sql_level = 1;
 	config.rf_power = LOW;
 	config.volume = 6;
 #endif
 	config.wifi_protocol = 7;
-	config.dtmf = true;
+	config.dtmf = false;
 	config.oled_enable = true;
 	config.oled_timeout = 0;
 	config.vpn = false;
@@ -567,6 +567,7 @@ void process_audio()
 				{
 					// audio_in[i]=Amplify(audio_in[i],512.0);
 					audiof[i] = (float)audio_in[i];
+					//Serial.printf("%.3f\n", audiof[i]);
 					// if(abs(audiof[i])<200) audiof[i]=0;
 					//  if (abs(audio_in[i]) > 5000)
 					//  {
@@ -606,9 +607,10 @@ void process_audio()
 						esp_agc_process(agc_handle, (short *)&audioIn[240], &audio_in[240], 80, 8000); // Audomatic gain control
 					}
 
-					for (int i = 0; i < pcmWidth; i++)
+					for (int i = 0; i < pcmWidth; i++) {
 						audiof[i] = (float)audio_in[i];
-
+					//	Serial.printf("%d\n", audio_in[i]);
+					}
 					free(audioIn);
 				}
 			}
@@ -729,8 +731,9 @@ void process_audio()
 				{
 					for (int i = 0; i < pcmWidth; i++)
 					{
+					//	Serial.printf("%d,", audio_in[i]);
 						audioIn[i] = audio_in[i];
-						audio_in[i] = 0;
+					//	audio_in[i] = 0;
 					}
 					esp_agc_process(agc_handle, (short *)&audioIn[0], &audio_in[0], 80, 8000);	 // Audomatic gain control
 					esp_agc_process(agc_handle, (short *)&audioIn[80], &audio_in[80], 80, 8000); // Audomatic gain control
@@ -778,7 +781,9 @@ void process_audio()
 #ifndef SA818
 					audio_in[x] = Amplify(audio_in[x], 150.0); // 64=x1
 #else
+					//Serial.printf("%d ", audio_in[x]);
 					audio_in[x] = Amplify(audio_in[x], 50.0);
+
 					// audio_in[x] = (short)audio_in[x];
 #endif
 					// while (pcmq.isFull())
@@ -788,6 +793,7 @@ void process_audio()
 						Serial.println("audioBuf is FULL");
 						break;
 					}
+					// Serial.printf("%d ", audio_in[x]);
 				}
 				// Serial.println("Recitation complete.");
 				// Serial.printf("Decode Time: %d ms.\n", (int)timeUse);
@@ -1367,24 +1373,129 @@ String send_fix_location()
 	tnc2Raw += String("Ref: " + String(config.reflector_name) + "[" + String(config.reflector_module) + "]");
 	return tnc2Raw;
 }
+void codec_setup2()
+{
+  // General setup needed
+  codec.enableVREF();
+  codec.enableVMID();
+
+  // Setup signal flow to the ADC
+
+  codec.enableLMIC();
+  codec.enableRMIC();
+
+  // Connect from INPUT1 to "n" (aka inverting) inputs of PGAs.
+  codec.connectLMN1();
+  codec.connectRMN1();
+
+  // Disable mutes on PGA inputs (aka INTPUT1)
+  codec.disableLINMUTE();
+  codec.disableRINMUTE();
+
+  // Set pga volumes
+  codec.setLINVOLDB(0.00); // Valid options are -17.25dB to +30dB (0.75dB steps)
+  codec.setRINVOLDB(0.00); // Valid options are -17.25dB to +30dB (0.75dB steps)
+
+  // Set input boosts to get inputs 1 to the boost mixers
+  codec.setLMICBOOST(WM8960_MIC_BOOST_GAIN_0DB);
+  codec.setRMICBOOST(WM8960_MIC_BOOST_GAIN_0DB);
+
+  // Connect from MIC inputs (aka pga output) to boost mixers
+  codec.connectLMIC2B();
+  codec.connectRMIC2B();
+
+  // Enable boost mixers
+  codec.enableAINL();
+  codec.enableAINR();
+
+  // Disconnect LB2LO (booster to output mixer (analog bypass)
+  // For this example, we are going to pass audio throught the ADC and DAC
+  codec.disableLB2LO();
+  codec.disableRB2RO();
+
+  // Connect from DAC outputs to output mixer
+  codec.enableLD2LO();
+  codec.enableRD2RO();
+
+  // Set gainstage between booster mixer and output mixer
+  // For this loopback example, we are going to keep these as low as they go
+  codec.setLB2LOVOL(WM8960_OUTPUT_MIXER_GAIN_NEG_21DB); 
+  codec.setRB2ROVOL(WM8960_OUTPUT_MIXER_GAIN_NEG_21DB);
+
+  // Enable output mixers
+  codec.enableLOMIX();
+  codec.enableROMIX();
+
+  // CLOCK STUFF, These settings will get you 44.1KHz sample rate, and class-d 
+  // freq at 705.6kHz
+  codec.enablePLL(); // Needed for class-d amp clock
+  codec.setPLLPRESCALE(WM8960_PLLPRESCALE_DIV_2);
+  codec.setSMD(WM8960_PLL_MODE_FRACTIONAL);
+  codec.setCLKSEL(WM8960_CLKSEL_PLL);
+  codec.setSYSCLKDIV(WM8960_SYSCLK_DIV_BY_2);
+  codec.setBCLKDIV(11);
+  codec.setDCLKDIV(WM8960_DCLKDIV_16);
+  codec.setPLLN(7);
+  codec.setPLLK(0x86, 0xC2, 0x26); // PLLK=86C226h
+  //codec.setADCDIV(0); // Default is 000 (what we need for 44.1KHz)
+  //codec.setDACDIV(0); // Default is 000 (what we need for 44.1KHz)
+  codec.setWL(WM8960_WL_16BIT);
+   // Initialize WM8960 codec
+
+  codec.writeRegister(0x04, 0x0010); // Clocking (Configure sample rate 16KHz)
+ 
+  codec.enablePeripheralMode();
+  //codec.enableMasterMode();
+  //codec.setALRCGPIO(); // Note, should not be changed while ADC is enabled.
+
+  // Enable ADCs and DACs
+  codec.enableAdcLeft();
+  codec.enableAdcRight();
+  codec.enableDacLeft();
+  codec.enableDacRight();
+  codec.disableDacMute();
+
+  //codec.enableLoopBack(); // Loopback sends ADC data directly into DAC
+  codec.disableLoopBack();
+
+  // Default is "soft mute" on, so we must disable mute to make channels active
+  codec.disableDacMute(); 
+  
+  codec.enableHeadphones();
+  codec.enableOUT3MIX(); // Provides VMID as buffer for headphone ground
+
+//  codec.enableSpeakers();
+
+//  Serial.println("Volume set to +0dB");
+//  codec.setSpeakerVolumeDB(0.0);
+
+  Serial.println("Volume set to +0dB");
+  codec.setHeadphoneVolumeDB(0.00);
+
+  Serial.println("Codec Setup complete.");
+}
 
 void codec_setup() { // Setup the WM8960 codec
-	// start up I2C
-	Serial.println("Startup I2C bus");
-	Wire.begin(SDA_PIN, SCL_PIN); // SDA, SCL WaveShare WM8960 I2C pins
-	if (!codec.begin())	{
-		Serial.println("Failed to initialize WM8960!");
-		while (1)	;	}
-	else
-		Serial.println("WM8960 initialized");
+
 	codec.enableVREF();
 	codec.enableVMID();
+
 	// Connect from DAC outputs to output mixer
 	codec.enableLD2LO();
+	codec.enableRD2RO(); // Enable right channel
+
 	// Set gainstage between booster mixer and output mixer
 	// Increase the gain to increase the volume
 	codec.setLB2LOVOL(WM8960_OUTPUT_MIXER_GAIN_0DB); // Set the gain for the left channel to 0dB
+	codec.setRB2ROVOL(WM8960_OUTPUT_MIXER_GAIN_0DB); // Set the gain for the right channel to 0dB
+
 	codec.enableLOMIX(); // Enable output mixers
+	codec.enableROMIX(); // Enable right output mixer
+
+	// Enable microphone input on both channels
+    codec.enableAdcLeft(); // Enable IN1L to left ADC
+	codec.enableAdcRight(); // Enable IN1R to right ADC
+
 	// CLOCK STUFF, These settings will get you 16KHz sample rate, and class-d freq at 705.6kHz
 	codec.enablePLL(); // Needed for class-d amp clock
 	codec.setPLLPRESCALE(WM8960_PLLPRESCALE_DIV_2);
@@ -1396,18 +1507,33 @@ void codec_setup() { // Setup the WM8960 codec
 	codec.setPLLN(7);
 	codec.setPLLK(0x86, 0xC2, 0x26); // PLLK=86C226h
 	codec.setWL(WM8960_WL_16BIT);
+
+	codec.writeRegister(0x04, 0x0010); // Clocking (Configure sample rate 16KHz)
 	codec.enablePeripheralMode();
+
 	codec.enableDacLeft(); // Enable DACs
+	codec.enableDacRight(); // Enable right DAC
+
+	codec.setDacLeftDigitalVolume(0xFF); // Set the volume for the left channel to 0dB
+	codec.setDacRightDigitalVolume(0xFF); // Set the volume for the right channel to 0dB
+
 	codec.disableLoopBack();
 	codec.disableDacMute(); // Default is "soft mute" on, so we must disable mute to make channels active
+
 	codec.enableHeadphones();
 	codec.enableOUT3MIX(); // Provides VMID as buffer for headphone ground
+
 	Serial.println("Volume set to +0dB");
-	codec.setHeadphoneVolumeDB(0.0);
-	codec.enableSpeakers();
-	codec.setSpeakerVolumeDB(6.0);
-	Serial.println("Codec Setup complete. Connect via Bluetooth, play music, and listen on Headphone outputs.");
+	codec.setHeadphoneVolumeDB(-12.0);
+
+//	codec.enableSpeakers();
+//	codec.setSpeakerVolumeDB(0.0);
+
+	Serial.println("WM8960 Codec Setup complete.");
 }
+
+bool firstRxDisp = false;
+int btn_count = 0;
 
 void setup()
 {
@@ -1420,6 +1546,7 @@ void setup()
 	pinMode(LED_RX, OUTPUT);
 	pinMode(LED_TX, OUTPUT);
 	pinMode(MIC_PIN, INPUT);
+//	digitalWrite(0, HIGH);
 	digitalWrite(PTT_PIN, LOW); /*
 	pinMode(39, INPUT);
 	pinMode(34, INPUT);
@@ -1598,8 +1725,18 @@ void setup()
 	display.setTextSize(1);
 	display.display();
 #endif
+	// start up I2C
+	Serial.println("Startup I2C bus");
+	Wire.begin(SDA_PIN, SCL_PIN, 100000); // SDA, SCL WaveShare WM8960 I2C pins
+	if (!codec.begin()) {
+		Serial.println("Failed to initialize WM8960!");
+		while (1) ; // halt execution if initialization fails
+	} else {
+		Serial.println("WM8960 initialized");
+	}
+
 	//   Init the codec
-	codec_setup();
+	codec_setup2();
 
 	enableLoopWDT();
 	// enableCore0WDT();
@@ -1640,11 +1777,8 @@ void setup()
 		NULL,		   /* Task input parameter */
 		2,			   /* Priority of the task */
 		&taskUIHandle, /* Task handle. */
-		1);			   /* Core where the task should run */
+		1);			   /* Core where the task should run */	
 }
-
-bool firstRxDisp = false;
-int btn_count = 0;
 
 void loop()
 {
@@ -2242,10 +2376,11 @@ void taskDSP(void *pvParameters)
 					{
 						adcR = (int16_t)audio_out[i];
 						pcmq.push(&adcR);
+					//	Serial.printf("%d,", adcR);
 					}
 					free(audio_in);
 					free(audio_out);
-					codec.setSpeakerVolume(0);			
+//					codec.setSpeakerVolume(0);			
 				} // read something from I2S
 			} 
 		}  // End TX
@@ -2254,7 +2389,7 @@ void taskDSP(void *pvParameters)
 			// Receive sound from M17 server to speaker
 			if (pcmq.getCount() >= 80)
 			{
-				codec.setSpeakerVolume(110);
+				//codec.setSpeakerVolume(110);
 				while (pcmq.getCount() >= 80)
 				{
 					short *audio_in = (short *)malloc(160 * sizeof(short));
@@ -2265,20 +2400,15 @@ void taskDSP(void *pvParameters)
 						{
 							pcmq.pop(&adcR);
 							audio_in[i] = (int16_t)adcR;
+						//	Serial.printf("%d,", adcR);
 						}
 						audio_resample((short *)audio_in, (short *)audio_out, SAMPLE_RATE_CODEC2, SAMPLE_RATE, 80, 160, 1, &resample); // Change Sample rate 8Khz->16Khz
 						esp_agc_process(agc_handle, audio_out, audio_in, 160, SAMPLE_RATE);
 						int k = 160;
-						// Rest of the code...
 						size_t bytes_written;
 						i2s_write(I2S_NUM_0, (char *)audio_in, (k * sizeof(uint16_t)), &bytes_written, portMAX_DELAY);
-						#ifdef DEBUG  
-						Serial.print(".");
-						#endif
-					//	i2s_write(I2S_NUM_0, (char *)&pcm_out, (k * sizeof(uint16_t)), &bytes_written, portMAX_DELAY);
-						//	i2s_write(I2S_NUM_0, (char *)&pcm_out, (k * sizeof(uint16_t)), portMAX_DELAY);
 					}
-					codec.setSpeakerVolume(0);
+					//codec.setSpeakerVolume(0);
 					free(audio_in);
 					free(audio_out);
 				}
